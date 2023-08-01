@@ -18,7 +18,7 @@ import (
 var shiftIndex = []int{24, 16, 8, 0}
 
 func CheckIP(ip string) (uint32, error) {
-	var ps = strings.Split(ip, ".")
+	var ps = strings.Split(strings.TrimSpace(ip), ".")
 	if len(ps) != 4 {
 		return 0, fmt.Errorf("invalid ip address `%s`", ip)
 	}
@@ -76,7 +76,16 @@ func LoadHeaderFromFile(dbFile string) (*Header, error) {
 		return nil, fmt.Errorf("open xdb file `%s`: %w", dbFile, err)
 	}
 
-	return LoadHeader(handle)
+	defer func(handle *os.File) {
+		_ = handle.Close()
+	}(handle)
+
+	header, err := LoadHeader(handle)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
 }
 
 // LoadHeaderFromBuff wrap the header info from the content buffer
@@ -112,7 +121,16 @@ func LoadVectorIndexFromFile(dbFile string) ([]byte, error) {
 		return nil, fmt.Errorf("open xdb file `%s`: %w", dbFile, err)
 	}
 
-	return LoadVectorIndex(handle)
+	defer func() {
+		_ = handle.Close()
+	}()
+
+	vIndex, err := LoadVectorIndex(handle)
+	if err != nil {
+		return nil, err
+	}
+
+	return vIndex, nil
 }
 
 // LoadContent load the whole xdb content from the specified file handle
@@ -151,5 +169,14 @@ func LoadContentFromFile(dbFile string) ([]byte, error) {
 		return nil, fmt.Errorf("open xdb file `%s`: %w", dbFile, err)
 	}
 
-	return LoadContent(handle)
+	defer func() {
+		_ = handle.Close()
+	}()
+
+	cBuff, err := LoadContent(handle)
+	if err != nil {
+		return nil, err
+	}
+
+	return cBuff, nil
 }
